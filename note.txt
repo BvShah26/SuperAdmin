@@ -1,0 +1,45 @@
+public static class DbInitializer
+    {
+        public static async Task IntializeAsync(IServiceProvider serviceProvider, UserManager<ApplicationUser> _userManager)
+        {
+            var RoleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            string[] rolesName = { "SuperAdmin", "CustomerCare" };
+
+            IdentityResult identityResult;
+            foreach (var item in rolesName)
+            {
+                var roleExists = await RoleManager.RoleExistsAsync(item);
+                if (!roleExists)
+                {
+                    identityResult = await RoleManager.CreateAsync(new IdentityRole(item));
+                }
+            }
+        }
+}
+
+
+program.cs
+
+public static void Main(string[] args)
+{
+    var host = BuildWebhost(args);
+    using (var scope =  host.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        try
+        {
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+            DbInitializer.IntializeAsync(services, userManager).Wait();
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, " Error Occured");
+        }
+    }
+
+    host.Run();
+}
+
+public static IWebHost BuildWebhost(string[] args) =>
+    WebHost.CreateDefaultBuilder(args).UseStartup<Startup>().Build();
